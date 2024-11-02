@@ -4,14 +4,24 @@ using System.Linq;
 using System.Reflection;
 using Facepunch;
 using Oxide.Core;
+using Oxide.Core.Plugins;
 using UnityEngine;
+
+
+
+// Credits to bawNg for writing the plugin, and to Nogrod for maintaining it.
+
+
+
 
 namespace Oxide.Plugins
 {
-    [Info("Building Grades", "bawNg / Nogrod", "0.3.13", ResourceId = 865)]
+    [Info("Building Grades", "Default", "0.3.15")]
     [Description("Allows admins to easily upgrade or downgrade an entire building")]
     class BuildingGrades : RustPlugin
     {
+        //[PluginReference]
+        //private Plugin NoEscape;
         private readonly FieldInfo meshLookupField = typeof(MeshColliderBatch).GetField("meshLookup", BindingFlags.Instance | BindingFlags.NonPublic);
         private const string Perm = "buildinggrades.cangrade";
         private const string PermNoCost = "buildinggrades.nocost";
@@ -431,7 +441,7 @@ namespace Oxide.Plugins
             {
                 var batch = initial_hit.collider?.GetComponent<MeshColliderBatch>();
                 if (batch == null) return stack;
-                var colliders = ((MeshColliderLookup)meshLookupField.GetValue(batch)).src.data;
+                var colliders = batch.meshLookup.src.data;
                 if (colliders == null) return stack;
                 foreach (var instance in colliders)
                 {
