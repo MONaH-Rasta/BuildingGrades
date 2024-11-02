@@ -13,12 +13,12 @@ using Timer = Oxide.Plugins.Timer;
 
   Credits to bawNg for writing the plugin, and to Nogrod for maintaining it.
 
-            TODO Refund ability for downgrading.
+            TODO Refund ability for downgrading. Cooldowns.
 ******************************************************************************/
 
 namespace Oxide.Plugins
 {
-    [Info("Building Grades", "Default", "0.5.0")]
+    [Info("Building Grades", "Default", "0.5.1")]
     [Description("Allows admins to easily upgrade or downgrade an entire building")]
     class BuildingGrades : RustPlugin
     {
@@ -27,7 +27,6 @@ namespace Oxide.Plugins
         private readonly FieldInfo meshLookupField = typeof(MeshColliderLookup).GetField("meshLookup", BindingFlags.Instance | BindingFlags.NonPublic);
         private const string Perm = "buildinggrades.cangrade";
         private const string PermNoCost = "buildinggrades.nocost";
-        private const string PermOwner = "buildinggrades.owner";
         private const string PermDown = "buildinggrades.down";
         private const float Distance = 3f;
         private readonly HashSet<ulong> runningPlayers = new HashSet<ulong>();
@@ -148,7 +147,6 @@ namespace Oxide.Plugins
         {
             permission.RegisterPermission(Perm, this);
             permission.RegisterPermission(PermNoCost, this);
-            permission.RegisterPermission(PermOwner, this);
             permission.RegisterPermission(PermDown, this);
         }
 
@@ -254,7 +252,7 @@ namespace Oxide.Plugins
                 return;
             }
 
-            if (player.IsBuildingBlocked())
+            if (player.IsBuildingBlocked() && !player.IsAdmin)
             {
                 PrintMessage(player, "NoPriv");
                 return;
@@ -327,8 +325,8 @@ namespace Oxide.Plugins
                 Pool.FreeList(ref blocks);
                 //done++;
             }
-            var allowed = player.IsAdmin || permission.UserHasPermission(player.UserIDString, PermOwner);
-            all_blocks.RemoveWhere(b => !allowed  || filter && !prefabs.Contains(b.prefabID));
+            var allowed = player.IsAdmin;
+            all_blocks.RemoveWhere(b => prefabs != null && (!allowed  || filter && !prefabs.Contains(b.prefabID)));
             //Puts("Time: {0} Size: {1} Done: {2}", Interface.Oxide.Now - started, all_blocks.Count, done);
 
             if (increment && !permission.UserHasPermission(player.UserIDString, PermNoCost))
@@ -375,7 +373,7 @@ namespace Oxide.Plugins
 
                 building_block.SetGrade((BuildingGrade.Enum)target_grade);
                 building_block.SetHealthToMax();
-                building_block.SendNetworkUpdate(BasePlayer.NetworkQueue.Update);
+                building_block.SendNetworkUpdate();
                 building_block.UpdateSkin();
                 Interface.CallHook("OnStructureUpgrade", building_block, player, (BuildingGrade.Enum)target_grade);
             }
