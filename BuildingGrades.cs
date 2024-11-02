@@ -8,13 +8,15 @@ using UnityEngine;
 
 namespace Oxide.Plugins
 {
-    [Info("Building Grades", "bawNg / Nogrod", "0.3.12", ResourceId = 865)]
+    [Info("Building Grades", "bawNg / Nogrod", "0.3.13", ResourceId = 865)]
     [Description("Allows admins to easily upgrade or downgrade an entire building")]
     class BuildingGrades : RustPlugin
     {
+        private readonly FieldInfo meshLookupField = typeof(MeshColliderBatch).GetField("meshLookup", BindingFlags.Instance | BindingFlags.NonPublic);
         private const string Perm = "buildinggrades.cangrade";
         private const string PermNoCost = "buildinggrades.nocost";
         private const string PermOwner = "buildinggrades.owner";
+        private const string PermDown = "buildinggrades.down";
         private const float Distance = 3f;
         private readonly HashSet<ulong> runningPlayers = new HashSet<ulong>();
         private ConfigData configData;
@@ -47,7 +49,8 @@ namespace Oxide.Plugins
                             "assets/prefabs/building core/wall.frame/wall.frame.prefab",
                             "assets/prefabs/building core/wall.window/wall.window.prefab",
                             "assets/prefabs/building core/wall.doorway/wall.doorway.prefab",
-                            "assets/prefabs/building core/wall/wall.prefab"
+                            "assets/prefabs/building core/wall/wall.prefab",
+                            "assets/prefabs/building core/wall.half/wall.half.prefab"
                         }
                     },
                     {
@@ -104,6 +107,7 @@ namespace Oxide.Plugins
             permission.RegisterPermission(Perm, this);
             permission.RegisterPermission(PermNoCost, this);
             permission.RegisterPermission(PermOwner, this);
+            permission.RegisterPermission(PermDown, this);
         }
 
         [ChatCommand("up4")]
@@ -139,30 +143,60 @@ namespace Oxide.Plugins
         [ChatCommand("down3")]
         void DownCommand3(BasePlayer player, string command, string[] args)
         {
+            if (!permission.UserHasPermission(player.UserIDString, PermDown))
+            {
+                PrintMessage(player, "NotAllowed");
+                return;
+            }
+
             ChangeBuildingGrade(player, args.Length > 0 ? new[] { "3", args[0] } : new[] { "3" }, false);
         }
 
         [ChatCommand("down2")]
         void DownCommand2(BasePlayer player, string command, string[] args)
         {
+            if (!permission.UserHasPermission(player.UserIDString, PermDown))
+            {
+                PrintMessage(player, "NotAllowed");
+                return;
+            }
+
             ChangeBuildingGrade(player, args.Length > 0 ? new[] { "2", args[0] } : new[] { "2" }, false);
         }
 
         [ChatCommand("down1")]
         void DownCommand1(BasePlayer player, string command, string[] args)
         {
+            if (!permission.UserHasPermission(player.UserIDString, PermDown))
+            {
+                PrintMessage(player, "NotAllowed");
+                return;
+            }
+
             ChangeBuildingGrade(player, args.Length > 0 ? new[] { "1", args[0] } : new[] { "1" }, false);
         }
 
         [ChatCommand("down0")]
         void DownCommand0(BasePlayer player, string command, string[] args)
         {
+            if (!permission.UserHasPermission(player.UserIDString, PermDown))
+            {
+                PrintMessage(player, "NotAllowed");
+                return;
+            }
+
             ChangeBuildingGrade(player, args.Length > 0 ? new[] { "0", args[0] } : new []{"0"}, false);
         }
 
         [ChatCommand("down")]
         void DownCommand(BasePlayer player, string command, string[] args)
         {
+            if (!permission.UserHasPermission(player.UserIDString, PermDown))
+            {
+                PrintMessage(player, "NotAllowed");
+                return;
+            }
+
             ChangeBuildingGrade(player, args, false);
         }
 
@@ -240,7 +274,7 @@ namespace Oxide.Plugins
             all_blocks.RemoveWhere(b => !allowed && b.OwnerID != player.userID || filter && !prefabs.Contains(b.prefabID));
             //Puts("Time: {0} Size: {1} Done: {2}", Interface.Oxide.Now - started, all_blocks.Count, done);
 
-            if (increment && !player.IsAdmin && !permission.UserHasPermission(player.UserIDString, PermNoCost))
+            if (increment && !permission.UserHasPermission(player.UserIDString, PermNoCost))
             {
                 var costs = GetCosts(all_blocks, targetGrade);
                 if (!CanAffordToUpgrade(costs, player)) return;
@@ -397,7 +431,7 @@ namespace Oxide.Plugins
             {
                 var batch = initial_hit.collider?.GetComponent<MeshColliderBatch>();
                 if (batch == null) return stack;
-                var colliders = batch.meshLookup.src.data;
+                var colliders = ((MeshColliderLookup)meshLookupField.GetValue(batch)).src.data;
                 if (colliders == null) return stack;
                 foreach (var instance in colliders)
                 {
