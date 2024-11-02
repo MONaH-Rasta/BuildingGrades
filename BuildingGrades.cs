@@ -18,7 +18,7 @@ using Timer = Oxide.Plugins.Timer;
 
 namespace Oxide.Plugins
 {
-    [Info("Building Grades", "Default", "0.4.0")]
+    [Info("Building Grades", "Default", "0.5.0")]
     [Description("Allows admins to easily upgrade or downgrade an entire building")]
     class BuildingGrades : RustPlugin
     {
@@ -127,6 +127,7 @@ namespace Oxide.Plugins
                 {"FinishedDown", "Finished downgrading!"},
                 {"AlreadyRunning", "Already running, please wait!"},
                 {"AnotherProcess", "Another process already running, please try again in a few seconds!"},
+                {"NoPriv", "<color=red>You do not have building priv.</color>" }
                 //{"CooldownActive", "You're on cooldown! You can't do this for {0} more seconds."}
             }, this);
             configData = Config.ReadObject<ConfigData>();
@@ -253,6 +254,12 @@ namespace Oxide.Plugins
                 return;
             }
 
+            if (player.IsBuildingBlocked())
+            {
+                PrintMessage(player, "NoPriv");
+                return;
+            }
+
             /*if (Cooldown)
             {
                 PrintMessage(player, "CooldownActive");
@@ -321,7 +328,7 @@ namespace Oxide.Plugins
                 //done++;
             }
             var allowed = player.IsAdmin || permission.UserHasPermission(player.UserIDString, PermOwner);
-            all_blocks.RemoveWhere(b => !allowed && b.OwnerID != player.userID || filter && !prefabs.Contains(b.prefabID));
+            all_blocks.RemoveWhere(b => !allowed  || filter && !prefabs.Contains(b.prefabID));
             //Puts("Time: {0} Size: {1} Done: {2}", Interface.Oxide.Now - started, all_blocks.Count, done);
 
             if (increment && !permission.UserHasPermission(player.UserIDString, PermNoCost))
@@ -458,7 +465,7 @@ namespace Oxide.Plugins
 
             }
             foreach (var item in items)
-                item.Remove(0f);
+                item.Remove();
         }
 
         /*private void RefundForDowngrade(Dictionary<int, float> refunds, BasePlayer player)
