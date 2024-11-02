@@ -11,7 +11,7 @@ using UnityEngine;
 
 namespace Oxide.Plugins
 {
-    [Info("Building Grades", "Default/Arainrr", "1.0.11")]
+    [Info("Building Grades", "Default/Arainrr", "1.0.12")]
     [Description("Allows players to easily upgrade or downgrade an entire building")]
     public class BuildingGrades : RustPlugin
     {
@@ -959,6 +959,7 @@ namespace Oxide.Plugins
 
         private static void SetBuildingBlockGrade(BuildingBlock buildingBlock, BuildingGrade.Enum targetGrade)
         {
+            buildingBlock.skinID = 0; // to avoid upgrade/downgrade to twig when using building skin
             buildingBlock.SetGrade(targetGrade);
             buildingBlock.SetHealthToMax();
             buildingBlock.StartBeingRotatable();
