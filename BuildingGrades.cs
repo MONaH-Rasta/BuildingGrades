@@ -11,7 +11,7 @@ using UnityEngine;
 
 namespace Oxide.Plugins
 {
-    [Info("Building Grades", "Default/Arainrr", "1.0.7")]
+    [Info("Building Grades", "Default/Arainrr", "1.0.8")]
     [Description("Allows players to easily upgrade or downgrade an entire building")]
     public class BuildingGrades : RustPlugin
     {
@@ -574,6 +574,7 @@ namespace Oxide.Plugins
                     if (_missingItems.Count > 0)
                     {
                         var stringBuilder = Pool.Get<StringBuilder>();
+                        stringBuilder.Clear();
                         var language = Plugin.lang.GetLanguage(player.UserIDString);
                         foreach (var entry in _missingItems)
                         {
@@ -871,6 +872,7 @@ namespace Oxide.Plugins
             //    }
             //    if (missingDictionary.Count > 0) {
             //        StringBuilder stringBuilder = Pool.Get<StringBuilder>();
+            //        stringBuilder.Clear();
             //        foreach (var entry in missingDictionary) {
             //            stringBuilder.AppendLine(Lang("MissingResourceFormat", player.UserIDString, entry.Key, entry.Value));
             //        }
