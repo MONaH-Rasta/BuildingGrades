@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Text;
@@ -11,7 +11,7 @@ using UnityEngine;
 
 namespace Oxide.Plugins
 {
-    [Info("Building Grades", "Default/Arainrr/Dana", "1.0.10")]
+    [Info("Building Grades", "Default/Arainrr", "1.0.11")]
     [Description("Allows players to easily upgrade or downgrade an entire building")]
     public class BuildingGrades : RustPlugin
     {
@@ -663,7 +663,7 @@ namespace Oxide.Plugins
                 }
 
                 var flag = true;
-                foreach (var item in constructionGrade.costToBuild)
+                foreach (var item in constructionGrade.CostToBuild())
                 {
                     var missingAmount = item.amount - player.inventory.GetAmount(item.itemid);
                     if (missingAmount > 0f)
@@ -681,7 +681,7 @@ namespace Oxide.Plugins
                 {
                     return;
                 }
-                foreach (var item in constructionGrade.costToBuild)
+                foreach (var item in constructionGrade.CostToBuild())
                 {
                     player.inventory.Take(_collect, item.itemid, (int)item.amount);
                     //player.Command("note.inv " + item.itemid + " " + item.amount * -1f);
