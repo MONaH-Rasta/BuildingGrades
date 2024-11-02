@@ -4,25 +4,27 @@ using System.Linq;
 using System.Reflection;
 using Facepunch;
 using Oxide.Core;
-using Oxide.Core.Plugins;
 using UnityEngine;
+using Oxide.Core.Plugins;
+using Time = UnityEngine.Time;
+using Timer = Oxide.Plugins.Timer;
 
+/*****************************************************************************
 
+  Credits to bawNg for writing the plugin, and to Nogrod for maintaining it.
 
-// Credits to bawNg for writing the plugin, and to Nogrod for maintaining it.
-
-
-
+            TODO Refund ability for downgrading.
+******************************************************************************/
 
 namespace Oxide.Plugins
 {
-    [Info("Building Grades", "Default", "0.3.15")]
+    [Info("Building Grades", "Default", "0.4.0")]
     [Description("Allows admins to easily upgrade or downgrade an entire building")]
     class BuildingGrades : RustPlugin
     {
         //[PluginReference]
         //private Plugin NoEscape;
-        private readonly FieldInfo meshLookupField = typeof(MeshColliderBatch).GetField("meshLookup", BindingFlags.Instance | BindingFlags.NonPublic);
+        private readonly FieldInfo meshLookupField = typeof(MeshColliderLookup).GetField("meshLookup", BindingFlags.Instance | BindingFlags.NonPublic);
         private const string Perm = "buildinggrades.cangrade";
         private const string PermNoCost = "buildinggrades.nocost";
         private const string PermOwner = "buildinggrades.owner";
@@ -31,11 +33,34 @@ namespace Oxide.Plugins
         private readonly HashSet<ulong> runningPlayers = new HashSet<ulong>();
         private ConfigData configData;
         private readonly Dictionary<string, HashSet<uint>> categories = new Dictionary<string, HashSet<uint>>();
+        /*public bool Cooldown { get; set; }
+        public double CooldownTime { get; set; }
+        public bool CooldownExcludeAdmins { get; set; }*/
+        /*
+         
+           private Hash<string, float> cooldowns = new Hash<string, float>();
+           
+           private void Save()
+           {
+           Interface.uMod.DataFileSystem.WriteObject("PluginName.Cooldowns", cooldowns);
+           }
+           
+           private void Load()
+           {
+           cooldowns = Interface.uMod.DataFileSystem.ReadObject<Hash<string, long>>("PluginName.Cooldowns");
+           }
+
+        */
 
         class ConfigData
         {
             public int BatchSize { get; set; }
             public Dictionary<string, HashSet<string>> Categories { get; set; }
+            /*public bool Cooldown { get; set; }
+            public double CooldownTime { get; set; }
+            public bool CooldownExcludeAdmins { get; set; }*/
+
+
         }
 
         protected override void LoadDefaultConfig()
@@ -43,6 +68,9 @@ namespace Oxide.Plugins
             var config = new ConfigData
             {
                 BatchSize = 500,
+                /*Cooldown = false,
+                CooldownTime = 60f,
+                CooldownExcludeAdmins = true,*/
                 Categories = new Dictionary<string, HashSet<string>>
                 {
                     {
@@ -84,6 +112,8 @@ namespace Oxide.Plugins
             Config.WriteObject(config, true);
         }
 
+
+
         private void Init()
         {
             lang.RegisterMessages(new Dictionary<string, string>
@@ -96,7 +126,8 @@ namespace Oxide.Plugins
                 {"FinishedUp", "Finished upgrading!"},
                 {"FinishedDown", "Finished downgrading!"},
                 {"AlreadyRunning", "Already running, please wait!"},
-                {"AnotherProcess", "Another process already running, please try again in a few seconds!"}
+                {"AnotherProcess", "Another process already running, please try again in a few seconds!"},
+                //{"CooldownActive", "You're on cooldown! You can't do this for {0} more seconds."}
             }, this);
             configData = Config.ReadObject<ConfigData>();
             foreach (var category in configData.Categories)
@@ -120,7 +151,8 @@ namespace Oxide.Plugins
             permission.RegisterPermission(PermDown, this);
         }
 
-        [ChatCommand("up4")]
+        #region Not used
+        /*[ChatCommand("up4")]
         void UpCommand4(BasePlayer player, string command, string[] args)
         {
             ChangeBuildingGrade(player, args.Length > 0 ? new[] { "4", args[0] } : new[] { "4" }, true);
@@ -142,7 +174,8 @@ namespace Oxide.Plugins
         void UpCommand1(BasePlayer player, string command, string[] args)
         {
             ChangeBuildingGrade(player, args.Length > 0 ? new[] { "1", args[0] } : new[] { "1" }, true);
-        }
+        }*/
+#endregion
 
         [ChatCommand("up")]
         void UpCommand(BasePlayer player, string command, string[] args)
@@ -150,7 +183,8 @@ namespace Oxide.Plugins
             ChangeBuildingGrade(player, args, true);
         }
 
-        [ChatCommand("down3")]
+        #region Not used
+        /*[ChatCommand("down3")]
         void DownCommand3(BasePlayer player, string command, string[] args)
         {
             if (!permission.UserHasPermission(player.UserIDString, PermDown))
@@ -196,7 +230,8 @@ namespace Oxide.Plugins
             }
 
             ChangeBuildingGrade(player, args.Length > 0 ? new[] { "0", args[0] } : new []{"0"}, false);
-        }
+        }*/
+        #endregion 
 
         [ChatCommand("down")]
         void DownCommand(BasePlayer player, string command, string[] args)
@@ -217,6 +252,11 @@ namespace Oxide.Plugins
                 PrintMessage(player, "NotAllowed");
                 return;
             }
+
+            /*if (Cooldown)
+            {
+                PrintMessage(player, "CooldownActive");
+            }*/
 
             if (runningPlayers.Contains(player.userID))
             {
@@ -291,23 +331,30 @@ namespace Oxide.Plugins
                 PayForUpgrade(costs, player);
             }
 
+            /*else if (!increment)
+            {
+                var refunds = GetRefund(all_blocks, targetGrade);
+                RefundForDowngrade(refunds, player);
+                //put things here.
+            }*/
+
             runningPlayers.Add(player.userID);
 
             NextTick(() => DoUpgrade(all_blocks, targetGrade, increment, player));
 
             /*foreach (var building_block in all_blocks)
             {
-                var target_grade = NextBlockGrade(building_block, grade, increment ? 1 : -1);
+                var target_grade = NextBlockGrade(building_block, targetGrade, increment ? 1 : -1);
                 if (!CanUpgrade(building_block, (BuildingGrade.Enum) target_grade)) continue;
 
                 building_block.SetGrade((BuildingGrade.Enum)target_grade);
                 building_block.SetHealthToMax();
-                building_block.SendNetworkUpdate(BasePlayer.NetworkQueue.Update);
+                building_block.SendNetworkUpdateImmediate();
                 building_block.UpdateSkin();
-            }
-            PrintMessage(player, increment ? "FinishedUp" : "FinishedDown");
+            }*/
+            //PrintMessage(player, increment ? "FinishedUp" : "FinishedDown");
             runningPlayers.Remove(player.userID);
-            */
+            
         }
 
         private void DoUpgrade(HashSet<BuildingBlock> all_blocks, int targetGrade, bool increment, BasePlayer player)
@@ -360,6 +407,34 @@ namespace Oxide.Plugins
             return costs;
         }
 
+        /*private Dictionary<int, float> GetRefund(HashSet<BuildingBlock> blocks, int targetGrade)
+        {
+            Dictionary<int, float> refund = new Dictionary<int, float>();
+            var toRemove = new HashSet<BuildingBlock>();
+            foreach (var block in blocks)
+            {
+                var grade = NextBlockGrade(block, targetGrade, 1);
+                if (!CanUpgrade(block, (BuildingGrade.Enum)grade))
+                {
+                    toRemove.Add(block);
+                    continue;
+                }
+                var costToBuild = block.blockDefinition.grades[grade].costToBuild;
+                foreach (var itemAmount in costToBuild)
+                {
+                    if (!refund.ContainsKey(itemAmount.itemid))
+                        refund[itemAmount.itemid] = itemAmount.amount;
+                    else
+                        refund[itemAmount.itemid] += itemAmount.amount;
+                }
+            }
+            foreach (var block in toRemove)
+                blocks.Remove(block);
+            return refund;
+        }*/
+
+
+
         private bool CanAffordToUpgrade(Dictionary<int, float> costs, BasePlayer player)
         {
             foreach (var current in costs)
@@ -380,10 +455,26 @@ namespace Oxide.Plugins
             {
                 player.inventory.Take(items, current.Key, (int)current.Value);
                 player.Command(string.Concat("note.inv ", current.Key, " ", current.Value * -1f));
+
             }
             foreach (var item in items)
                 item.Remove(0f);
         }
+
+        /*private void RefundForDowngrade(Dictionary<int, float> refunds, BasePlayer player)
+        {
+            var items = new List<Item>();
+            foreach (var current in refunds)
+            {
+                player.inventory.Take(items, current.Key, (int)current.Value);
+                //ItemManager.CreateByItemID(items)
+                player.Command(string.Concat("note.inv ", current.Key, " ", current.Value * -1f));
+            }
+            foreach (var item in items)
+                item.Remove(-0f);
+
+                    //Server.Command("note.inv", current.Key, " ", current.Value * 1f);
+        }*/
 
         private static bool CanUpgrade(BuildingBlock block, BuildingGrade.Enum grade)
         {
@@ -439,9 +530,9 @@ namespace Oxide.Plugins
             if (entity != null) stack.Push(entity);
             else
             {
-                var batch = initial_hit.collider?.GetComponent<MeshColliderBatch>();
+                var batch = initial_hit.collider?.GetComponent<MeshColliderLookup>();
                 if (batch == null) return stack;
-                var colliders = batch.meshLookup.src.data;
+                var colliders = batch.src.data;
                 if (colliders == null) return stack;
                 foreach (var instance in colliders)
                 {
