@@ -11,7 +11,7 @@ using UnityEngine;
 
 namespace Oxide.Plugins
 {
-    [Info("Building Grades", "Default/Arainrr", "1.0.8")]
+    [Info("Building Grades", "Default/Arainrr", "1.0.9")]
     [Description("Allows players to easily upgrade or downgrade an entire building")]
     public class BuildingGrades : RustPlugin
     {
@@ -614,7 +614,7 @@ namespace Oxide.Plugins
                 {
                     return false;
                 }
-                var constructionGrade = buildingBlock.GetGrade(targetGrade);
+                var constructionGrade = buildingBlock.blockDefinition.GetGrade(targetGrade, 0);
                 if (constructionGrade == null)
                 {
                     return false;
@@ -629,7 +629,7 @@ namespace Oxide.Plugins
                     {
                         return false;
                     }
-                    if (!buildingBlock.CanChangeToGrade(targetGrade, player))
+                    if (!buildingBlock.CanChangeToGrade(targetGrade, 0, player))
                     {
                         return false;
                     }
@@ -759,7 +759,7 @@ namespace Oxide.Plugins
                     return false;
                 }
 
-                var constructionGrade = buildingBlock.GetGrade(targetGrade);
+                var constructionGrade = buildingBlock.blockDefinition.GetGrade(targetGrade, 0);
                 if (constructionGrade == null)
                 {
                     return false;
