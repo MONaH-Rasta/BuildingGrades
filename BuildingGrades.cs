@@ -11,7 +11,7 @@ using UnityEngine;
 
 namespace Oxide.Plugins
 {
-    [Info("Building Grades", "Default/Arainrr", "1.0.12")]
+    [Info("Building Grades", "Default/Arainrr", "1.0.13")]
     [Description("Allows players to easily upgrade or downgrade an entire building")]
     public class BuildingGrades : RustPlugin
     {
@@ -582,7 +582,7 @@ namespace Oxide.Plugins
                         }
                         var missingResources = stringBuilder.ToString();
                         stringBuilder.Clear();
-                        Pool.Free(ref stringBuilder);
+                        Pool.FreeUnmanaged(ref stringBuilder);
                         Plugin.Print(player, success > 0 ? Plugin.Lang("UpgradeNotEnoughItemsSuccess", player.UserIDString, success, missingResources) : Plugin.Lang("UpgradeNotEnoughItems", player.UserIDString, missingResources));
                     }
                     else
@@ -978,7 +978,7 @@ namespace Oxide.Plugins
         {
             var current = 0;
             var checkFrom = Pool.Get<Queue<Vector3>>();
-            var nearbyEntities = Pool.GetList<T>();
+            var nearbyEntities = Pool.Get<List<T>>();
             checkFrom.Enqueue(sourceEntity.transform.position);
             while (checkFrom.Count > 0)
             {
@@ -1003,8 +1003,8 @@ namespace Oxide.Plugins
                     yield return CoroutineEx.waitForEndOfFrame;
                 }
             }
-            Pool.Free(ref checkFrom);
-            Pool.FreeList(ref nearbyEntities);
+            Pool.FreeUnmanaged(ref checkFrom);
+            Pool.FreeUnmanaged(ref nearbyEntities);
         }
 
         #endregion Helpers
